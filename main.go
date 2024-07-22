@@ -23,6 +23,20 @@ func main() {
 
 	db.Connect_psql()
 
+	RdsClient := db.NewRedisClient()
+
+	err := RdsClient.Rdb.Set(context.Background(), "key", "value", 0).Err()
+	if err != nil {
+		panic(err)
+	}
+
+	val, err := RdsClient.Rdb.Get(context.Background(), "key").Result()
+	fmt.Println("key", val)
+
+	if err != nil {
+		panic(err)
+	}
+
 	// close when program done
 	defer db.DBConn.Close(context.Background())
 
