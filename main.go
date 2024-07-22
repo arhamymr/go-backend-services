@@ -21,24 +21,21 @@ func init() {
 func main() {
 	http.HandleFunc("/", handlers.HelloWorldHandler)
 
-	db.Connect_psql()
+	PSQLClient := db.NewConnectPsql()
+	// close when program done
+	defer PSQLClient.DBConn.Close(context.Background())
 
 	RdsClient := db.NewRedisClient()
-
 	err := RdsClient.Rdb.Set(context.Background(), "key", "value", 0).Err()
 	if err != nil {
 		panic(err)
 	}
-
 	val, err := RdsClient.Rdb.Get(context.Background(), "key").Result()
 	fmt.Println("key", val)
 
 	if err != nil {
 		panic(err)
 	}
-
-	// close when program done
-	defer db.DBConn.Close(context.Background())
 
 	serverAddress := "localhost:8080"
 	fmt.Printf("Server starting at http://%s\n", serverAddress)
