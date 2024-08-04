@@ -9,6 +9,7 @@ import (
 
 	"go-backend-services/db"
 	"go-backend-services/handlers"
+	"go-backend-services/middleware"
 )
 
 var (
@@ -32,6 +33,7 @@ func main() {
 
 	// start server
 	e := echo.New()
+	e.Use(middleware.DBConn(PSQLClient.DBConn))
 
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Hello, World!")
