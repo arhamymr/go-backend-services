@@ -1,16 +1,16 @@
 package db
 
 import (
-	"context"
+	"database/sql"
 	"fmt"
 	"os"
 	"sync"
 
-	"github.com/jackc/pgx/v5"
+	_ "github.com/lib/pq"
 )
 
 type PSQLClient struct {
-	DBConn *pgx.Conn
+	DBConn *sql.DB
 }
 
 var (
@@ -21,8 +21,8 @@ var (
 func NewConnectPsql() *PSQLClient {
 	once.Do(func() {
 		var err error
-		var DBConn *pgx.Conn
-		DBConn, err = pgx.Connect(context.Background(), os.Getenv("POSTGRES_URL"))
+		var DBConn *sql.DB
+		DBConn, err = sql.Open("postgres", os.Getenv("POSTGRES_URL"))
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Unable to connect database %v \n", err)

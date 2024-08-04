@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 
@@ -13,8 +12,8 @@ import (
 )
 
 var (
-	PSQLClient  *db.PSQLClient
-	RedisClient *db.RedisClient
+	PSQLClient *db.PSQLClient
+	// RedisClient *db.RedisClient
 )
 
 func init() {
@@ -29,7 +28,7 @@ func init() {
 
 func main() {
 	// close when program done
-	defer PSQLClient.DBConn.Close(context.Background())
+	defer PSQLClient.DBConn.Close()
 
 	// start server
 	e := echo.New()
