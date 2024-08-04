@@ -2,6 +2,12 @@
 
 Experimental backend services using golang
 
+## Command
+
+`make run `
+
+run services, this script using nodemon to detect change and reload services
+
 ## Framework
 
 - Echo (High performance, extensible, minimalist Go web framework) [link](https://echo.labstack.com/docs)
