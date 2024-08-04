@@ -1,12 +1,23 @@
 # Go Backend Services
 
-using for learning golang restfull API
+Experimental backend services using golang
+
+## Framework
+
+- Echo (High performance, extensible, minimalist Go web framework) [link](https://echo.labstack.com/docs)
 
 ## Database
 
-1. PostgreSQL
+1. Migration
+
+   - Makefile for manage migration script
+   - Migrate CLI [link](https://github.com/golang-migrate/migrate/tree/master/cmd/migrate)
+
+2. PostgreSQL
+
    - Connect Database
-   -
-2. Redis
+   - Simple CRUD
+
+3. Redis
+
    - Connect Redis Server
-   -
