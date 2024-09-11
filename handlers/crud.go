@@ -5,11 +5,18 @@ import (
 	"fmt"
 	"go-backend-services/types"
 	"net/http"
+	"sync"
 
 	"github.com/labstack/echo/v4"
 )
 
+// you can using syncRWMutex for better performance
+var lock sync.Mutex
+
 func SaveData(c echo.Context) error {
+	lock.Lock()
+	defer lock.Unlock()
+
 	data := new(types.Crud)
 
 	var response types.Response
@@ -25,7 +32,6 @@ func SaveData(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, response)
 	}
 
-	// id := uuid.New()
 	query := "INSERT INTO crud ( name, description) VALUES ($1, $2)"
 	db := c.Get("db").(*sql.DB)
 	_, err = db.Exec(query, data.Name, data.Description)
@@ -48,6 +54,9 @@ func SaveData(c echo.Context) error {
 }
 
 func GetData(c echo.Context) error {
+	lock.Lock()
+	defer lock.Unlock()
+
 	id := c.Param("id")
 	fmt.Print("id:", id)
 
@@ -81,6 +90,9 @@ func GetData(c echo.Context) error {
 }
 
 func GetAllData(c echo.Context) error {
+	lock.Lock()
+	defer lock.Unlock()
+
 	query := "SELECT id, name, description FROM crud"
 	db := c.Get("db").(*sql.DB)
 
@@ -137,8 +149,11 @@ func GetAllData(c echo.Context) error {
 }
 
 func UpdateData(c echo.Context) error {
-	id := c.Param("id")
 
+	lock.Lock()
+	defer lock.Unlock()
+
+	id := c.Param("id")
 	var response types.Response
 
 	data := new(types.Crud)
@@ -214,6 +229,9 @@ func UpdateData(c echo.Context) error {
 }
 
 func DeleteData(c echo.Context) error {
+	lock.Lock()
+	defer lock.Unlock()
+
 	id := c.Param("id")
 
 	query := "DELETE FROM crud WHERE id = $1"
@@ -221,9 +239,10 @@ func DeleteData(c echo.Context) error {
 
 	// Prepare the query
 	stmt, err := db.Prepare(query)
+	var response types.Response
 
 	if err != nil {
-		response := types.Response{
+		response = types.Response{
 			Status:  http.StatusBadRequest,
 			Data:    struct{}{},
 			Message: fmt.Sprintf("Failed to prepare query: %v", err),
@@ -234,10 +253,10 @@ func DeleteData(c echo.Context) error {
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(id)
+	result, err := stmt.Exec(id)
 
 	if err != nil {
-		response := types.Response{
+		response = types.Response{
 			Status:  http.StatusBadRequest,
 			Data:    struct{}{},
 			Message: fmt.Sprintf("Failed delete to database: %v", err),
@@ -245,7 +264,28 @@ func DeleteData(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, response)
 	}
 
-	response := types.Response{
+	// check if not found
+	rowsAffected, err := result.RowsAffected()
+
+	if err != nil {
+		response = types.Response{
+			Status:  http.StatusBadRequest,
+			Data:    struct{}{},
+			Message: fmt.Sprintf("Failed to get rows affected: %v", err),
+		}
+		return c.JSON(http.StatusBadRequest, response)
+	}
+
+	if rowsAffected == 0 {
+		response = types.Response{
+			Status:  http.StatusNotFound,
+			Data:    struct{}{},
+			Message: fmt.Sprintf("Data not found: %v", err),
+		}
+		return c.JSON(http.StatusNotFound, response)
+	}
+
+	response = types.Response{
 		Status:  http.StatusOK,
 		Data:    struct{}{},
 		Message: "Data deleted successfully",
