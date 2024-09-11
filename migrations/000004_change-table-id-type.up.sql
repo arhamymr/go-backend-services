@@ -1,0 +1,11 @@
+
+ALTER TABLE "crud" ADD COLUMN new_id CHAR(36);
+UPDATE "crud" SET new_id = UUID();
+
+ALTER TABLE "crud" DROP CONSTRAINT crud_pkey;
+
+ALTER TABLE "crud" DROP COLUMN id;
+
+ALTER TABLE "crud" CHANGE COLUMN new_id id CHAR(36)
+
+ALTER TABLE "crud" ADD PRIMARY KEY (id);

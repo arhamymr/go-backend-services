@@ -41,6 +41,7 @@ func main() {
 
 	// CRUD
 	e.POST("/crud", handlers.SaveData)
+	e.GET("/crud", handlers.GetAllData)
 	e.GET("/crud/:id", handlers.GetData)
 	e.PUT("/crud/:id", handlers.UpdateData)
 	e.DELETE("/crud/:id", handlers.DeleteData)
