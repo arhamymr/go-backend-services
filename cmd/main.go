@@ -13,8 +13,8 @@ import (
 )
 
 var (
-	PSQLClient *db.PSQLClient
-	// RedisClient *db.RedisClient
+	PSQLClient  *db.PSQLClient
+	RedisClient *db.RedisClient
 )
 
 func init() {
@@ -24,7 +24,10 @@ func init() {
 	}
 
 	PSQLClient = db.NewConnectPsql()
+
+	// init redis client
 	db.InitRedisClient()
+	RedisClient = db.GetRedisClient()
 }
 
 func main() {
@@ -33,7 +36,8 @@ func main() {
 
 	// start server
 	e := echo.New()
-	e.Use(middleware.DBConn(PSQLClient.DBConn))
+	fmt.Print(RedisClient)
+	e.Use(middleware.DBConn(PSQLClient.DBConn, RedisClient))
 
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Hello, World!")
@@ -42,9 +46,9 @@ func main() {
 	// CRUD
 	e.POST("/crud", handlers.SaveData)
 	e.GET("/crud", handlers.GetAllData)
-	e.GET("/crud/:id", handlers.GetData)
-	e.PUT("/crud/:id", handlers.UpdateData)
-	e.DELETE("/crud/:id", handlers.DeleteData)
+	e.GET("/crud/:uuid", handlers.GetData)
+	e.PUT("/crud/:uuid", handlers.UpdateData)
+	e.DELETE("/crud/:uuid", handlers.DeleteData)
 
 	e.Logger.Fatal(e.Start(":1323"))
 

@@ -10,5 +10,5 @@ else
     echo "Redis server is already running."
 fi
 
-
-nodemon --exec go run cmd/main.go --signal SIGTERM
+kill-port 1323
+nodemon --exec go run cmd/main.go

@@ -1,0 +1,2 @@
+ALTER TABLE crud
+DROP COLUMN uuid

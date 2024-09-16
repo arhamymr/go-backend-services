@@ -23,6 +23,7 @@ func RedisHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	}
 }
+
 func RedisSet(w http.ResponseWriter, r *http.Request) {
 	envVar := os.Getenv("POSTGRES_URL")
 	fmt.Fprintf(w, "Hello, World!")

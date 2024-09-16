@@ -1,0 +1,2 @@
+ALTER TABLE crud 
+ADD COLUMN uuid UUID

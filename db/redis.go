@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -33,7 +34,6 @@ func InitRedisClient() {
 		})
 
 		pong, err := Client.Ping(context.Background()).Result()
-
 		if err != nil {
 			log.Fatalf("Could not connect to redis %v \n", err)
 		}
@@ -47,7 +47,16 @@ func InitRedisClient() {
 }
 
 func (rdc *RedisClient) Set(key string, value string) error {
-	err := rdc.Rdb.Set(ctx, key, value, 0).Err()
+	err := rdc.SetWithExpired(key, value, 0)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (rdc *RedisClient) SetWithExpired(key string, value string, expired time.Duration) error {
+	err := rdc.Rdb.Set(ctx, key, value, expired).Err()
 
 	if err != nil {
 		return err
@@ -59,8 +68,16 @@ func (rdc *RedisClient) Set(key string, value string) error {
 func (rdc *RedisClient) Get(key string) (string, error) {
 	result, err := rdc.Rdb.Get(ctx, key).Result()
 
-	if err != nil {
-		return result, err
+	switch {
+	case err == redis.Nil:
+		fmt.Println("Keys does not exists")
+		return "", redis.Nil
+	case err != nil:
+		fmt.Println("Failed to get data")
+		return "", err
+	case result == "":
+		fmt.Println("Value empty")
+		return "", fmt.Errorf("Value empty")
 	}
 
 	return result, nil
