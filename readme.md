@@ -11,6 +11,7 @@ run services, this script using nodemon to detect change and reload services
 ## Framework
 
 - Echo (High performance, extensible, minimalist Go web framework) [link](https://echo.labstack.com/docs)
+- Implement Middleware 
 
 ## Database
 
@@ -27,3 +28,5 @@ run services, this script using nodemon to detect change and reload services
 3. Redis
 
    - Connect Redis Server
+   - Set/Get from Redis 
+   - Cache Response API 
