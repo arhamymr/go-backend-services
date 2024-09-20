@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
 	// "github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 )
@@ -39,15 +40,16 @@ func SaveData(c echo.Context) error {
 
 	stmt, err := db.Prepare(query)
 
-	defer stmt.Close()
-
 	if err != nil {
 		response = types.Response{
 			Status:  http.StatusBadRequest,
 			Data:    struct{}{},
 			Message: fmt.Sprintf("Failed to prepare this query: %v", err),
 		}
+		return c.JSON(http.StatusBadRequest, response)
 	}
+
+	defer stmt.Close()
 
 	_, err = stmt.Exec(data.Name, data.Description)
 
@@ -80,8 +82,20 @@ func GetData(c echo.Context) error {
 	dbPsql := c.Get("db").(*sql.DB)
 	dbRedis := c.Get("db-redis").(*db.RedisClient)
 
+	var response types.Response
 	// check redis before go to database
 	result, err := dbRedis.Get(uuid)
+
+	if err != nil {
+		response = types.Response{
+			Status:  http.StatusBadRequest,
+			Data:    struct{}{},
+			Message: fmt.Sprintf("Failed to get data from redis: %v", err),
+		}
+
+		return c.JSON(http.StatusBadRequest, response)
+	}
+
 	var data types.Crud
 
 	err = json.Unmarshal([]byte(result), &data)
@@ -90,7 +104,6 @@ func GetData(c echo.Context) error {
 		fmt.Println("Failed to unmarshall result continue to go to database")
 	}
 
-	var response types.Response
 	if err == nil {
 		fmt.Println("Get From Redis")
 		response = types.Response{
@@ -103,8 +116,6 @@ func GetData(c echo.Context) error {
 
 	stmt, err := dbPsql.Prepare(query)
 
-	defer stmt.Close()
-
 	if err != nil {
 		response = types.Response{
 			Status:  http.StatusBadRequest,
@@ -114,6 +125,8 @@ func GetData(c echo.Context) error {
 
 		return c.JSON(http.StatusOK, response)
 	}
+
+	defer stmt.Close()
 
 	row := stmt.QueryRow(uuid)
 
@@ -158,10 +171,7 @@ func GetAllData(c echo.Context) error {
 
 	stmt, err := db.Prepare(query)
 
-	defer stmt.Close()
-
 	var response types.Response
-
 	if err != nil {
 		response = types.Response{
 			Status:  http.StatusBadRequest,
@@ -172,8 +182,9 @@ func GetAllData(c echo.Context) error {
 		return c.JSON(http.StatusOK, response)
 	}
 
-	rows, err := stmt.Query()
+	defer stmt.Close()
 
+	rows, err := stmt.Query()
 	if err != nil {
 		response = types.Response{
 			Status:  http.StatusBadRequest,
@@ -267,7 +278,6 @@ func UpdateData(c echo.Context) error {
 
 	// Prepare the query
 	stmt, err := db.Prepare(query)
-	defer stmt.Close()
 
 	if err != nil {
 		response = types.Response{
@@ -278,6 +288,8 @@ func UpdateData(c echo.Context) error {
 
 		return c.JSON(http.StatusBadRequest, response)
 	}
+
+	defer stmt.Close()
 
 	params = append(params, uuid)
 	_, err = stmt.Exec(params...)
@@ -311,7 +323,6 @@ func DeleteData(c echo.Context) error {
 
 	// Prepare the query
 	stmt, err := db.Prepare(query)
-	defer stmt.Close()
 
 	var response types.Response
 
@@ -324,6 +335,8 @@ func DeleteData(c echo.Context) error {
 
 		return c.JSON(http.StatusBadRequest, response)
 	}
+
+	defer stmt.Close()
 
 	result, err := stmt.Exec(id)
 
