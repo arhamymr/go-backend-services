@@ -77,8 +77,18 @@ func (rdc *RedisClient) Get(key string) (string, error) {
 		return "", err
 	case result == "":
 		fmt.Println("Value empty")
-		return "", fmt.Errorf("Value empty")
+		return "", fmt.Errorf("value empty")
 	}
 
 	return result, nil
+}
+
+func (rdc *RedisClient) Del(key string) error {
+	err := rdc.Rdb.Del(ctx, key).Err()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

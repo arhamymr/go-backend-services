@@ -18,7 +18,6 @@ func SaveData(c echo.Context) error {
 	defer lock.Unlock()
 
 	data := new(types.CrudDTO)
-	var response types.Response
 
 	err := c.Bind(data)
 
@@ -78,7 +77,6 @@ func GetData(c echo.Context) error {
 	dbPsql := c.Get("db").(*sql.DB)
 	dbRedis := c.Get("db-redis").(*db.RedisClient)
 
-	var response types.Response
 	// check redis before go to database
 	result, err := dbRedis.Get(uuid)
 
@@ -160,7 +158,6 @@ func GetAllData(c echo.Context) error {
 
 	stmt, err := db.Prepare(query)
 
-	var response types.Response
 	if err != nil {
 		response = types.Response{
 			Status:  http.StatusBadRequest,
@@ -227,7 +224,6 @@ func UpdateData(c echo.Context) error {
 	defer lock.Unlock()
 
 	uuid := c.Param("uuid")
-	var response types.Response
 
 	data := new(types.CrudDTO)
 	err := c.Bind(data)
@@ -312,8 +308,6 @@ func DeleteData(c echo.Context) error {
 
 	// Prepare the query
 	stmt, err := db.Prepare(query)
-
-	var response types.Response
 
 	if err != nil {
 		response = types.Response{

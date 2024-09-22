@@ -73,41 +73,33 @@ func GetArticle(c echo.Context) error {
 
 	uuid := c.Param("uuid")
 
-	query := "SELECT uuid, name, description FROM crud WHERE uuid = $1"
+	query := "SELECT * FROM articles WHERE uuid = $1"
 
 	dbPsql := c.Get("db").(*sql.DB)
 	dbRedis := c.Get("db-redis").(*db.RedisClient)
 
-	var response types.Response
+	var data types.Article
+
 	// check redis before go to database
 	result, err := dbRedis.Get(uuid)
 
-	if err != nil {
-		response = types.Response{
-			Status:  http.StatusBadRequest,
-			Data:    struct{}{},
-			Message: fmt.Sprintf("Failed to get data from redis: %v", err),
-		}
-
-		return c.JSON(http.StatusBadRequest, response)
-	}
-
-	var data types.Crud
-
-	err = json.Unmarshal([]byte(result), &data)
-
-	if err != nil {
-		fmt.Println("Failed to unmarshall result continue to go to database")
-	}
-
+	// if any data found in redis
 	if err == nil {
-		fmt.Println("Get From Redis")
-		response = types.Response{
-			Status:  http.StatusOK,
-			Data:    data,
-			Message: "OK from Redis",
+		err = json.Unmarshal([]byte(result), &data)
+
+		if err != nil {
+			fmt.Println("Failed to unmarshall result continue to go to database")
 		}
-		return c.JSON(http.StatusOK, response)
+
+		if err == nil {
+			fmt.Println("Get From Redis")
+			response = types.Response{
+				Status:  http.StatusOK,
+				Data:    data,
+				Message: "OK from Redis",
+			}
+			return c.JSON(http.StatusOK, response)
+		}
 	}
 
 	stmt, err := dbPsql.Prepare(query)
@@ -126,7 +118,7 @@ func GetArticle(c echo.Context) error {
 
 	row := stmt.QueryRow(uuid)
 
-	err = row.Scan(&data.Uuid, &data.Name, &data.Description)
+	err = row.Scan(&data.Uuid, &data.Title, &data.Content, &data.Author, &data.Preview, &data.Thumbnail, &data.Slug, &data.CreatedAt, &data.UpdatedAt)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -139,20 +131,18 @@ func GetArticle(c echo.Context) error {
 		}
 	}
 
-	response = types.Response{
-		Status:  http.StatusOK,
-		Data:    data,
-		Message: "OK from Database",
-	}
-
-	fmt.Println("get from database")
-
-	dataJSON, err := json.Marshal(data)
+	dataJSON, err := json.Marshal(&data)
 
 	if err != nil {
 		fmt.Println("Failed to marshall json data not saved to redis")
 	} else {
 		dbRedis.SetWithExpired(uuid, string(dataJSON), 60*time.Minute)
+	}
+
+	response = types.Response{
+		Status:  http.StatusOK,
+		Data:    data,
+		Message: "OK from Database",
 	}
 
 	return c.JSON(http.StatusOK, response)
@@ -162,12 +152,11 @@ func GetAllArticle(c echo.Context) error {
 	lock.Lock()
 	defer lock.Unlock()
 
-	query := "SELECT uuid, name, description FROM crud"
+	query := "SELECT * FROM articles"
 	db := c.Get("db").(*sql.DB)
 
 	stmt, err := db.Prepare(query)
 
-	var response types.Response
 	if err != nil {
 		response = types.Response{
 			Status:  http.StatusBadRequest,
@@ -193,11 +182,11 @@ func GetAllArticle(c echo.Context) error {
 
 	defer rows.Close()
 
-	var data []types.Crud
+	var data []types.Article
 
 	for rows.Next() {
-		item := types.Crud{}
-		err := rows.Scan(&item.Uuid, &item.Name, &item.Description)
+		item := types.Article{}
+		err := rows.Scan(&item.Uuid, &item.Title, &item.Content, &item.Author, &item.Preview, &item.Thumbnail, &item.Slug, &item.CreatedAt, &item.UpdatedAt)
 
 		if err != nil {
 			response = types.Response{
@@ -234,9 +223,8 @@ func UpdateArticle(c echo.Context) error {
 	defer lock.Unlock()
 
 	uuid := c.Param("uuid")
-	var response types.Response
 
-	data := new(types.CrudDTO)
+	data := new(types.CreateArticleDTO)
 	err := c.Bind(data)
 
 	if err != nil {
@@ -248,32 +236,60 @@ func UpdateArticle(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, response)
 	}
 
-	query := "UPDATE crud SET"
+	query := "UPDATE articles SET"
 	params := []interface{}{}
 	paramIndex := 1
 	updatedData := make(map[string]interface{})
 
-	if data.Name != "" {
-		query += fmt.Sprintf(" name = $%d,", paramIndex)
-		params = append(params, data.Name)
-		updatedData["name"] = data.Name
+	if data.Title != "" {
+		query += fmt.Sprintf(" title = $%d,", paramIndex)
+		params = append(params, data.Title)
+		updatedData["title"] = data.Title
 		paramIndex++
 	}
 
-	if data.Description != "" {
-		query += fmt.Sprintf(" description = $%d,", paramIndex)
-		params = append(params, data.Description)
-		updatedData["description"] = data.Description
+	if data.Content != "" {
+		query += fmt.Sprintf(" content = $%d,", paramIndex)
+		params = append(params, data.Content)
+		updatedData["content"] = data.Content
+		paramIndex++
+	}
+
+	if data.Author != "" {
+		query += fmt.Sprintf(" author = $%d,", paramIndex)
+		params = append(params, data.Author)
+		updatedData["author"] = data.Author
+		paramIndex++
+	}
+
+	if data.Preview != "" {
+		query += fmt.Sprintf(" preview = $%d,", paramIndex)
+		params = append(params, data.Preview)
+		updatedData["preview"] = data.Preview
+		paramIndex++
+	}
+
+	if data.Thumbnail != "" {
+		query += fmt.Sprintf(" thumbnail = $%d,", paramIndex)
+		params = append(params, data.Thumbnail)
+		updatedData["thumbnail"] = data.Thumbnail
+		paramIndex++
+	}
+
+	if data.Slug != "" {
+		query += fmt.Sprintf(" slug = $%d,", paramIndex)
+		params = append(params, data.Slug)
+		updatedData["slug"] = data.Slug
 		paramIndex++
 	}
 
 	// Remove the trailing comma
 	query = query[:len(query)-1]
 	query += fmt.Sprintf(" WHERE uuid = $%d", paramIndex)
-	db := c.Get("db").(*sql.DB)
+	dbPsql := c.Get("db").(*sql.DB)
 
 	// Prepare the query
-	stmt, err := db.Prepare(query)
+	stmt, err := dbPsql.Prepare(query)
 
 	if err != nil {
 		response = types.Response{
@@ -299,6 +315,10 @@ func UpdateArticle(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, response)
 	}
 
+	// if success update to database, delete cache in redis
+	dbRedis := c.Get("db-redis").(*db.RedisClient)
+	dbRedis.Del(uuid)
+
 	response = types.Response{
 		Status:  http.StatusOK,
 		Data:    updatedData,
@@ -312,15 +332,13 @@ func DeleteArticle(c echo.Context) error {
 	lock.Lock()
 	defer lock.Unlock()
 
-	id := c.Param("uuid")
+	uuid := c.Param("uuid")
 
-	query := "DELETE FROM crud WHERE uuid = $1"
-	db := c.Get("db").(*sql.DB)
+	query := "DELETE FROM articles WHERE uuid = $1"
+	dbPsql := c.Get("db").(*sql.DB)
 
 	// Prepare the query
-	stmt, err := db.Prepare(query)
-
-	var response types.Response
+	stmt, err := dbPsql.Prepare(query)
 
 	if err != nil {
 		response = types.Response{
@@ -334,7 +352,7 @@ func DeleteArticle(c echo.Context) error {
 
 	defer stmt.Close()
 
-	result, err := stmt.Exec(id)
+	result, err := stmt.Exec(uuid)
 
 	if err != nil {
 		response = types.Response{
@@ -365,6 +383,10 @@ func DeleteArticle(c echo.Context) error {
 		}
 		return c.JSON(http.StatusNotFound, response)
 	}
+
+	// if success delete to database, delete cache in redis
+	dbRedis := c.Get("db-redis").(*db.RedisClient)
+	dbRedis.Del(uuid)
 
 	response = types.Response{
 		Status:  http.StatusOK,

@@ -10,8 +10,8 @@ type CreateArticleDTO struct {
 }
 
 type Article struct {
-	CreateArticleDTO
-	ID        string `json:"id"`
+	Uuid      string `json:"uuid"`
 	CreatedAt string `json:"created_at"`
 	UpdatedAt string `json:"updated_at"`
+	CreateArticleDTO
 }
