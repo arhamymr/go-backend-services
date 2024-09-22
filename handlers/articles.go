@@ -9,15 +9,14 @@ import (
 	"net/http"
 	"time"
 
-	// "github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 )
 
-func SaveData(c echo.Context) error {
+func CreateArticle(c echo.Context) error {
 	lock.Lock()
 	defer lock.Unlock()
 
-	data := new(types.CrudDTO)
+	data := new(types.CreateArticleDTO)
 	var response types.Response
 
 	err := c.Bind(data)
@@ -31,7 +30,8 @@ func SaveData(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, response)
 	}
 
-	query := "INSERT INTO crud (name, description) VALUES ($1, $2)"
+	query := "INSERT INTO articles (title, content, author, preview, thumbnail, slug) VALUES ($1, $2, $3, $4, $5, $6)"
+
 	db := c.Get("db").(*sql.DB)
 
 	stmt, err := db.Prepare(query)
@@ -47,7 +47,7 @@ func SaveData(c echo.Context) error {
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(data.Name, data.Description)
+	_, err = stmt.Exec(data.Title, data.Content, data.Author, data.Preview, data.Thumbnail, data.Slug)
 
 	if err != nil {
 		response = types.Response{
@@ -67,7 +67,7 @@ func SaveData(c echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
-func GetData(c echo.Context) error {
+func GetArticle(c echo.Context) error {
 	lock.Lock()
 	defer lock.Unlock()
 
@@ -82,25 +82,32 @@ func GetData(c echo.Context) error {
 	// check redis before go to database
 	result, err := dbRedis.Get(uuid)
 
+	if err != nil {
+		response = types.Response{
+			Status:  http.StatusBadRequest,
+			Data:    struct{}{},
+			Message: fmt.Sprintf("Failed to get data from redis: %v", err),
+		}
+
+		return c.JSON(http.StatusBadRequest, response)
+	}
+
 	var data types.Crud
 
-	// if any data found in redis
+	err = json.Unmarshal([]byte(result), &data)
+
+	if err != nil {
+		fmt.Println("Failed to unmarshall result continue to go to database")
+	}
+
 	if err == nil {
-		err = json.Unmarshal([]byte(result), &data)
-
-		if err != nil {
-			fmt.Println("Failed to unmarshall result continue to go to database")
+		fmt.Println("Get From Redis")
+		response = types.Response{
+			Status:  http.StatusOK,
+			Data:    data,
+			Message: "OK from Redis",
 		}
-
-		if err == nil {
-			fmt.Println("Get From Redis")
-			response = types.Response{
-				Status:  http.StatusOK,
-				Data:    data,
-				Message: "OK from Redis",
-			}
-			return c.JSON(http.StatusOK, response)
-		}
+		return c.JSON(http.StatusOK, response)
 	}
 
 	stmt, err := dbPsql.Prepare(query)
@@ -151,7 +158,7 @@ func GetData(c echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
-func GetAllData(c echo.Context) error {
+func GetAllArticle(c echo.Context) error {
 	lock.Lock()
 	defer lock.Unlock()
 
@@ -221,7 +228,7 @@ func GetAllData(c echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
-func UpdateData(c echo.Context) error {
+func UpdateArticle(c echo.Context) error {
 
 	lock.Lock()
 	defer lock.Unlock()
@@ -301,7 +308,7 @@ func UpdateData(c echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
-func DeleteData(c echo.Context) error {
+func DeleteArticle(c echo.Context) error {
 	lock.Lock()
 	defer lock.Unlock()
 

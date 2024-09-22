@@ -18,49 +18,39 @@ run services, this script using nodemon to detect change and reload services
 ## Feature
 
 - Simple CRUD
-
-  The feature is do simple Create Read Update data to database and implement cache in get data, structure table can describe like table below:
-
-  | Table Name  | Data Type                         | Constraint                            |
-  | ----------- | --------------------------------- | ------------------------------------- |
-  | uuid        | UUID (auto)                       | Primary Key default gen_random_uuid() |
-  | name        | character varying                 | -                                     |
-  | description | text                              | -                                     |
-  | created_at  | timestamp without timezone (auto) | default Date Now()                    |
-
-  **API Specification**
-
-  POST /crud
-  GET /crud
-  GET /crud/:uuid
-  PUT /crud/:uuid
-  DELETE /crud/:uuid
-
+  The feature is do simple Create Read Update data to database and implement cache in get data, structure table can describe like table below
 - Article (todo)
 - User Management (todo)
+- Sell Merch (todo)
+- Marketing Tools (todo)
+  Broadcash Sender (todo),
+  Simple landing page for marketer (todo)
+- Retry Mecanism (third party) (todo)
+- Circuit Breaker (third party) (todo)
 
 ## Security (todo)
 
 - Rate Limiting, trottling and logging (todo)
 - Encryption, store OTP and sensitive user data securely (todo)
-- Input Validation, always validate and sanitize incoming data (todo)
-- Parameterized Queries (todo)
+- Input Validation, always validate and sanitize incoming data
+- Parameterized Queries
 
 ## Basic Authorization & Authentication (todo)
 
-- Create Database User (todo)
-- Login Request (todo)
-- Login Response with access token (todo)
+- Create Database User
+- Login Request
+- Login Response with access token
 - Token used for access resource (todo)
 
 ## Multi-factor Authentication (todo)
 
-- OTP: Send OTP to phone number , whatsapp , email and authenticator app (todo)
+- OTP: Send OTP to phone number , whatsapp , email and authenticator app
+  Sender integrate with mailerSend,
 - Biometric Data: fingerprint and face recognition (todo)
 
 ## Database
 
 1. Migration (Golang migrate)
 2. PostgreSQL: Connect client PostgreSQL
-3. Redis: Connect client redis, set/get without or with expiration, cache
+3. Redis: Connect client redis, set/get without or with expiration, cache, pub/sub(todo)
 4. MongoDB : Connect client MongoDB (todo)

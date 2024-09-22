@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 
 	"github.com/go-playground/validator"
 	"github.com/joho/godotenv"
@@ -48,15 +47,16 @@ func main() {
 
 	// start server
 	e := echo.New()
+
+	// custom validator
 	v := validator.New()
 	v.RegisterValidation("custom-pass", helpers.ValidatePassword)
 	e.Validator = &helpers.AppValidator{Validator: v}
 	fmt.Print(RedisClient)
-	e.Use(middleware.DBConn(PSQLClient.DBConn, RedisClient))
 
-	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Hello, World!")
-	})
+	// middleware
+	e.Use(middleware.DBConn(PSQLClient.DBConn, RedisClient))
+	e.Use(middleware.JWTMiddleware())
 
 	// CRUD
 	e.POST("/crud", handlers.SaveData)
@@ -67,6 +67,20 @@ func main() {
 
 	// Auth
 	e.POST("/auth/register", handlers.AuthRegister)
+	e.POST("/auth/login", handlers.AuthLogin)
+
+	// Articles
+	e.POST("/article", handlers.CreateArticle)
+	e.GET("/article", handlers.GetAllArticle)
+	e.GET("/article/:uuid", handlers.GetArticle)
+	e.PUT("/article/:uuid", handlers.UpdateArticle)
+	e.DELETE("/article/:uuid", handlers.DeleteArticle)
+
+	// Token
+	e.POST("/generate/global-token", handlers.GlobalToken)
+
+	// Test
+	e.POST("/mail/test", handlers.TestMessaging)
 	e.Logger.Fatal(e.Start(":1323"))
 
 }
