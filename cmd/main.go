@@ -2,15 +2,17 @@ package main
 
 import (
 	"fmt"
-
-	"github.com/go-playground/validator"
-	"github.com/joho/godotenv"
-	"github.com/labstack/echo/v4"
+	"net/http"
 
 	"go-backend-services/db"
 	"go-backend-services/handlers"
 	"go-backend-services/helpers"
-	"go-backend-services/middleware"
+	appMiddleware "go-backend-services/middleware"
+
+	"github.com/go-playground/validator"
+	"github.com/joho/godotenv"
+	"github.com/labstack/echo/v4"
+	echoMiddleware "github.com/labstack/echo/v4/middleware"
 )
 
 var (
@@ -48,15 +50,31 @@ func main() {
 	// start server
 	e := echo.New()
 
+	// CORS middleware
+	e.Use(echo.MiddlewareFunc(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			c.Response().Header().Set("Access-Control-Allow-Origin", "http://localhost:3000") // Allow your Next.js frontend
+			c.Response().Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+			c.Response().Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+			// Handle preflight requests
+			if c.Request().Method == http.MethodOptions {
+				return c.NoContent(http.StatusNoContent)
+			}
+
+			return next(c)
+		}
+	}))
+	// middleware
+	e.Use(appMiddleware.DBConn(PSQLClient.DBConn, RedisClient))
+	e.Use(appMiddleware.JWTMiddleware())
+	e.Use(echoMiddleware.Logger())
+	e.Use(echoMiddleware.Recover())
+
 	// custom validator
 	v := validator.New()
 	v.RegisterValidation("custom-pass", helpers.ValidatePassword)
 	e.Validator = &helpers.AppValidator{Validator: v}
-	fmt.Print(RedisClient)
-
-	// middleware
-	e.Use(middleware.DBConn(PSQLClient.DBConn, RedisClient))
-	e.Use(middleware.JWTMiddleware())
 
 	// CRUD
 	e.POST("/crud", handlers.SaveData)
@@ -77,7 +95,7 @@ func main() {
 	e.DELETE("/article/:uuid", handlers.DeleteArticle)
 
 	// Token
-	e.POST("/generate/global-token", handlers.GlobalToken)
+	e.GET("/generate/global-token", handlers.GlobalToken)
 
 	// Test
 	e.POST("/mail/test", handlers.TestMessaging)

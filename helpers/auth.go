@@ -36,7 +36,6 @@ func CreateToken(uuid string) string {
 func VerifyToken(tokenString string, tokenEnv string) error {
 	// Verify token
 
-	fmt.Printf("tokenString %s, %s", os.Getenv("SECRET_TOKEN_KEY"), tokenString)
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return []byte(os.Getenv(tokenEnv)), nil
 	})
