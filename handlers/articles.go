@@ -25,12 +25,33 @@ func CreateArticle(c echo.Context) error {
 		response = types.Response{
 			Status:  http.StatusBadRequest,
 			Data:    struct{}{},
-			Message: err.Error(),
+			Message: fmt.Sprintf("Failed to bind: %v", err.Error()),
 		}
 		return c.JSON(http.StatusBadRequest, response)
 	}
 
-	query := "INSERT INTO articles (title, content, author, preview, thumbnail, slug) VALUES ($1, $2, $3, $4, $5, $6)"
+	err = c.Validate(data)
+	if err != nil {
+		response = types.Response{
+			Status:  http.StatusBadRequest,
+			Data:    struct{}{},
+			Message: fmt.Sprintf("Failed to validate: %v", err.Error()),
+		}
+		return c.JSON(http.StatusBadRequest, response)
+	}
+
+	imageJSON, err := json.Marshal(data.Image)
+
+	if err != nil {
+		response = types.Response{
+			Status:  http.StatusBadRequest,
+			Data:    struct{}{},
+			Message: fmt.Sprintf("Failed to marshall image: %v", err),
+		}
+		return c.JSON(http.StatusBadRequest, response)
+	}
+
+	query := "INSERT INTO articles (title, content, author, excerpt, image, slug, category_id) VALUES ($1, $2, $3, $4, $5, $6, $7)"
 
 	db := c.Get("db").(*sql.DB)
 
@@ -47,7 +68,7 @@ func CreateArticle(c echo.Context) error {
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(data.Title, data.Content, data.Author, data.Preview, data.Thumbnail, data.Slug)
+	_, err = stmt.Exec(data.Title, data.Content, data.Author, data.Excerpt, string(imageJSON), data.Slug, data.CategoryId)
 
 	if err != nil {
 		response = types.Response{
@@ -73,7 +94,7 @@ func GetArticle(c echo.Context) error {
 
 	uuid := c.Param("uuid")
 
-	query := "SELECT * FROM articles WHERE uuid = $1"
+	query := "SELECT articles.uuid, articles.created_at, articles.updated_at, articles.title, articles.content, articles.author, articles.image, articles.slug, articles.excerpt, categories.name AS category FROM articles LEFT JOIN categories ON articles.category_id = categories.uuid WHERE articles.uuid = $1"
 
 	dbPsql := c.Get("db").(*sql.DB)
 	dbRedis := c.Get("db-redis").(*db.RedisClient)
@@ -118,7 +139,7 @@ func GetArticle(c echo.Context) error {
 
 	row := stmt.QueryRow(uuid)
 
-	err = row.Scan(&data.Uuid, &data.Title, &data.Content, &data.Author, &data.Preview, &data.Thumbnail, &data.Slug, &data.CreatedAt, &data.UpdatedAt)
+	err = row.Scan(&data.Uuid, &data.CreatedAt, &data.UpdatedAt, &data.Title, &data.Content, &data.Author, &data.Image, &data.Slug, &data.Excerpt, &data.Category)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -129,6 +150,14 @@ func GetArticle(c echo.Context) error {
 			}
 			return c.JSON(http.StatusNotFound, response)
 		}
+
+		response = types.Response{
+			Status:  http.StatusInternalServerError,
+			Data:    struct{}{},
+			Message: fmt.Sprintf("Failed to scan this row: %v", err),
+		}
+
+		return c.JSON(http.StatusInternalServerError, response)
 	}
 
 	dataJSON, err := json.Marshal(&data)
@@ -152,7 +181,11 @@ func GetAllArticle(c echo.Context) error {
 	lock.Lock()
 	defer lock.Unlock()
 
-	query := "SELECT * FROM articles"
+	query := "SELECT articles.uuid, articles.created_at, articles.updated_at, articles.title, articles.content, articles.author, articles.image, articles.slug, articles.excerpt, categories.name AS category FROM articles LEFT JOIN categories ON articles.category_id = categories.uuid LIMIT $1 OFFSET $2"
+
+	limit := c.QueryParam("limit")
+	offset := c.QueryParam("offset")
+
 	db := c.Get("db").(*sql.DB)
 
 	stmt, err := db.Prepare(query)
@@ -169,7 +202,7 @@ func GetAllArticle(c echo.Context) error {
 
 	defer stmt.Close()
 
-	rows, err := stmt.Query()
+	rows, err := stmt.Query(limit, offset)
 	if err != nil {
 		response = types.Response{
 			Status:  http.StatusBadRequest,
@@ -186,7 +219,7 @@ func GetAllArticle(c echo.Context) error {
 
 	for rows.Next() {
 		item := types.Article{}
-		err := rows.Scan(&item.Uuid, &item.Title, &item.Content, &item.Author, &item.Preview, &item.Thumbnail, &item.Slug, &item.CreatedAt, &item.UpdatedAt)
+		err := rows.Scan(&item.Uuid, &item.CreatedAt, &item.UpdatedAt, &item.Title, &item.Content, &item.Author, &item.Image, &item.Slug, &item.Excerpt, &item.Category)
 
 		if err != nil {
 			response = types.Response{
@@ -262,19 +295,19 @@ func UpdateArticle(c echo.Context) error {
 		paramIndex++
 	}
 
-	if data.Preview != "" {
-		query += fmt.Sprintf(" preview = $%d,", paramIndex)
-		params = append(params, data.Preview)
-		updatedData["preview"] = data.Preview
+	if data.Excerpt != "" {
+		query += fmt.Sprintf(" excerpt = $%d,", paramIndex)
+		params = append(params, data.Excerpt)
+		updatedData["excerpt"] = data.Excerpt
 		paramIndex++
 	}
 
-	if data.Thumbnail != "" {
-		query += fmt.Sprintf(" thumbnail = $%d,", paramIndex)
-		params = append(params, data.Thumbnail)
-		updatedData["thumbnail"] = data.Thumbnail
-		paramIndex++
-	}
+	// if data.Image != "" {
+	// 	query += fmt.Sprintf(" thumbnail = $%d,", paramIndex)
+	// 	params = append(params, data.Thumbnail)
+	// 	updatedData["thumbnail"] = data.Thumbnail
+	// 	paramIndex++
+	// }
 
 	if data.Slug != "" {
 		query += fmt.Sprintf(" slug = $%d,", paramIndex)

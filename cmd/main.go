@@ -89,13 +89,21 @@ func main() {
 
 	// Articles
 	e.POST("/article", handlers.CreateArticle)
-	e.GET("/article", handlers.GetAllArticle)
+	e.GET("/articles", handlers.GetAllArticle)
 	e.GET("/article/:uuid", handlers.GetArticle)
 	e.PUT("/article/:uuid", handlers.UpdateArticle)
 	e.DELETE("/article/:uuid", handlers.DeleteArticle)
 
+	// Categories
+	e.POST("/category", handlers.CreateCategory)
+	e.GET("/categories", handlers.GetAllCategory)
+	e.DELETE("/category/:uuid", handlers.DeleteCategory)
+
 	// Token
 	e.GET("/generate/global-token", handlers.GlobalToken)
+
+	// unsplash
+	e.GET("/unsplash/search/:keyword", handlers.SearchUnplash)
 
 	// Test
 	e.POST("/mail/test", handlers.TestMessaging)

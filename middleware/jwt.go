@@ -26,7 +26,7 @@ func JWTMiddleware() echo.MiddlewareFunc {
 				return next(c)
 			}
 
-			pattern := regexp.MustCompile(`^/crud.*|^/generate/global-token$|^/article.*|^/auth/login$|^/mail/test$|^/auth/register$`)
+			pattern := regexp.MustCompile(`^/crud.*|^/generate/global-token$|^/public-article.*|^/auth/login$|^/mail/test$|^/auth/register$`)
 
 			if pattern.MatchString(c.Path()) {
 				token := getToken(c)
