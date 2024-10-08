@@ -219,7 +219,10 @@ func GetAllArticle(c echo.Context) error {
 
 	for rows.Next() {
 		item := types.Article{}
-		err := rows.Scan(&item.Uuid, &item.CreatedAt, &item.UpdatedAt, &item.Title, &item.Content, &item.Author, &item.Image, &item.Slug, &item.Excerpt, &item.Category)
+
+		var imageJSON string
+
+		err := rows.Scan(&item.Uuid, &item.CreatedAt, &item.UpdatedAt, &item.Title, &item.Content, &item.Author, &imageJSON, &item.Slug, &item.Excerpt, &item.Category)
 
 		if err != nil {
 			response = types.Response{
@@ -229,6 +232,17 @@ func GetAllArticle(c echo.Context) error {
 			}
 			return c.JSON(http.StatusBadRequest, response)
 		}
+
+		err = json.Unmarshal([]byte(imageJSON), &item.Image)
+
+		if err != nil {
+			response = types.Response{
+				Status:  http.StatusBadRequest,
+				Data:    []struct{}{},
+				Message: fmt.Sprintf("Failed to unmarshall image: %v", err),
+			}
+		}
+
 		data = append(data, item)
 
 		if err := rows.Err(); err != nil {

@@ -9,8 +9,13 @@ type UnsplashUrls struct {
 	SmallS3 string `json:"small_s3"`
 }
 
+type UnsplashUser struct {
+	Username string `json:"username"`
+}
+
 type UnsplashResults struct {
 	Urls UnsplashUrls `json:"urls"`
+	User UnsplashUser `json:"user"`
 }
 
 type UnsplashResponse struct {
